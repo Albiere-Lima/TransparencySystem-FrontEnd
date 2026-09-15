@@ -1,0 +1,93 @@
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Nunito', sans-serif;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-weight: 700;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Tipografia e Botões */
+h1, h2, h3, h4, button, th, strong, b {
+  font-weight: 900 !important; 
+  letter-spacing: -0.02em; 
+}
+
+/* Variáveis de Tema */
+:root, [data-theme='institucional'] {
+  --primary-color: #2563EB;
+  --header-bg: #2563EB;
+  --bg-main: #F4F6F8;
+  --bg-surface: #FFFFFF;
+  --border-color: #E2E8F0;
+  --text-primary: #1E293B;   /* Ajustado para texto escuro */
+  --text-secondary: #475569;
+  --text-on-header: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --dropdown-hover: #F1F5F9;
+}
+
+[data-theme='escuro'] {
+  --primary-color: #3B82F6;
+  --header-bg: #1A1D24;
+  --bg-main: #0F1115;
+  --bg-surface: #1A1D24;
+  --border-color: #334155;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-on-header: #F8FAFC;
+  --input-bg: #0F1115;
+  --dropdown-hover: #2D3748;
+}
+
+[data-theme='floresta'] {
+  --primary-color: #16A34A;
+  --header-bg: #14532D; 
+  --bg-main: #F0FDF4; 
+  --bg-surface: #FFFFFF;
+  --border-color: #BBF7D0;
+  --text-primary: #14532D;
+  --text-secondary: #15803D;
+  --text-on-header: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --dropdown-hover: #DCFCE7;
+}
+
+[data-theme='violeta'] {
+  --primary-color: #8B5CF6;
+  --header-bg: #4C1D95;
+  --bg-main: #F5F3FF;
+  --bg-surface: #FFFFFF;
+  --border-color: #DDD6FE;
+  --text-primary: #2E1065;   /* Ajustado para texto escuro */
+  --text-secondary: #6D28D9;
+  --text-on-header: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --dropdown-hover: #EDE9FE;
+}
+
+[data-theme='areia'] {
+  --primary-color: #D97706;
+  --header-bg: #78350F;
+  --bg-main: #FEFCE8;
+  --bg-surface: #FFFFFF;
+  --border-color: #FEF08A;
+  --text-primary: #451A03;   /* Ajustado para texto escuro */
+  --text-secondary: #B45309;
+  --text-on-header: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --dropdown-hover: #FEF9C3;
+}
