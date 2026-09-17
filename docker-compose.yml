@@ -18,7 +18,7 @@ services:
     restart: always
     command:
       - "http"
-      - "backend_transparencia:8080"
+      - "frontend_app:5173"
     environment:
       - NGROK_AUTHTOKEN=3JSJHlysscubiSSZE3VvDDuwmGw_3Axt2eGvdnj8wh2Gmdrtd
     ports:
