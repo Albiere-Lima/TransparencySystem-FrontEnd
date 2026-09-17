@@ -10,15 +10,18 @@ services:
       - "5173:80"
     restart: always
     environment:
-      - VITE_API_URL=http://localhost:8080/api
+      # Use caminho relativo se o Nginx estiver configurado como Proxy, 
+      # ou a URL HTTPS do ngrok do backend se forem túneis separados.
+      - VITE_API_URL=/api
     networks:
       - api-network
+
   ngrok:
     image: ngrok/ngrok:latest
     restart: always
     command:
       - "http"
-      - "frontend_app:5173"
+      - "frontend_app:80" # Corrigido para a porta interna 80
     environment:
       - NGROK_AUTHTOKEN=3JSJHlysscubiSSZE3VvDDuwmGw_3Axt2eGvdnj8wh2Gmdrtd
     ports:
