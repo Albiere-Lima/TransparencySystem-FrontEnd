@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const api = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: 'https://backendcalcc.internal/api',
 });
 
 api.interceptors.request.use((config) => {
