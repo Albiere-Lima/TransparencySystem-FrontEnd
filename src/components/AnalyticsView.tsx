@@ -199,6 +199,11 @@ export function AnalyticsView({ expenses, onRefresh }: { expenses: Expense[]; on
                   <span style={{ ...styles.amountText, color: 'var(--text-secondary)' }}>
                     {formatBRL(item.value)}
                   </span>
+                  
+                  <button style={styles.actionIconButton} onClick={() => setSelectedExpenseForReceipt(expenses.find(e => e.category === item.name) || null)}>
+                    <FileText />
+                  </button>
+                  
                 </div>
               );
             })}
