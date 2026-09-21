@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   ResponsiveContainer,
   PieChart,
@@ -11,8 +12,10 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { PieChart as PieIcon, BarChart3 as BarIcon, ListFilter } from 'lucide-react';
+import { PieChart as PieIcon, BarChart3 as BarIcon, ListFilter, FileText } from 'lucide-react';
 import { styles } from '../styles/AnalyticsView.styles';
+import { ReceiptModal } from '../modals/ReceiptModal.tsx';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Expense {
   id?: number;
@@ -20,6 +23,7 @@ interface Expense {
   amount: number | string;
   date: string;
   category: string;
+  receiptUrl?: string | null;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -52,9 +56,23 @@ function getCenteredMonthsWindow() {
   return months;
 }
 
-export function AnalyticsView({ expenses }: { expenses: Expense[] }) {
+interface AnalyticsViewProps {
+  expenses: Expense[];
+  onRefresh?: () => void;
+}
+
+export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
+  const { user } = useAuth();
+  const [selectedExpenseForReceipt, setSelectedExpenseForReceipt] = useState<Expense | null>(null);
+
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
 
   const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
@@ -103,13 +121,12 @@ export function AnalyticsView({ expenses }: { expenses: Expense[] }) {
           <h3 style={styles.cardTitle}>Distribuição por Categoria</h3>
           
           {hasData ? (
-            /* CORREÇÃO: Altura alterada para 280px */
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={categoryData}
-                  innerRadius={60} /* CORREÇÃO: Valor numérico em px */
-                  outerRadius={90} /* CORREÇÃO: Valor numérico em px */
+                  innerRadius={60}
+                  outerRadius={90}
                   paddingAngle={0}
                   dataKey="value"
                   nameKey="name"
@@ -144,7 +161,6 @@ export function AnalyticsView({ expenses }: { expenses: Expense[] }) {
           <h3 style={styles.cardTitle}>Evolução Mensal de Gastos</h3>
           
           {hasData ? (
-            /* CORREÇÃO: Altura alterada para 280px */
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
@@ -165,7 +181,7 @@ export function AnalyticsView({ expenses }: { expenses: Expense[] }) {
 
       {/* Card 3: Resumo por Categoria */}
       <div style={styles.card}>
-        <div style={{...styles.summaryHeader, color: 'var(--text-secondary)' }}>
+        <div style={{ ...styles.summaryHeader, color: 'var(--text-secondary)' }}>
           <h3 style={styles.summaryTitle}>Resumo por Categoria</h3>
           <span style={styles.summaryTotalText}>
             Total: {formatBRL(totalAmount)}
@@ -191,7 +207,7 @@ export function AnalyticsView({ expenses }: { expenses: Expense[] }) {
                     {item.percentage.toFixed(1)}%
                   </span>
 
-                  <span style={{...styles.amountText, color: 'var(--text-secondary)'}}>
+                  <span style={{ ...styles.amountText, color: 'var(--text-secondary)' }}>
                     {formatBRL(item.value)}
                   </span>
                 </div>
@@ -205,6 +221,65 @@ export function AnalyticsView({ expenses }: { expenses: Expense[] }) {
           </div>
         )}
       </div>
+
+      {/* Card 4: Detalhamento de Comprovantes */}
+      {hasData && (
+        <div style={styles.card}>
+          <div style={{ ...styles.summaryHeader, color: 'var(--text-secondary)' }}>
+            <h3 style={styles.summaryTitle}>Comprovantes das Despesas</h3>
+          </div>
+
+          <div style={styles.summaryList}>
+            {expenses.map((expense) => (
+              <div key={expense.id || expense.description} style={styles.summaryItem}>
+                <div style={{ ...styles.summaryCategoryCol, color: 'var(--text-secondary)', flex: 2 }}>
+                  <span style={styles.categoryName}>{expense.description}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.8 }}>
+                    {formatDate(expense.date)} • {expense.category}
+                  </span>
+                </div>
+
+                <span style={{ ...styles.amountText, color: 'var(--text-secondary)', flex: 1, textAlign: 'right' }}>
+                  {formatBRL(Number(expense.amount || 0))}
+                </span>
+
+                <button
+                  onClick={() => setSelectedExpenseForReceipt(expense)}
+                  title="Ver / Anexar Comprovante"
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: 'var(--primary-color)',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                  }}
+                >
+                  <FileText size={16} />
+                  <span>Comprovante</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Comprovante */}
+      <ReceiptModal
+        isOpen={!!selectedExpenseForReceipt}
+        onClose={() => setSelectedExpenseForReceipt(null)}
+        protocol={selectedExpenseForReceipt?.id?.toString() || ''}
+        receiptUrl={selectedExpenseForReceipt?.receiptUrl}
+        userRole={user?.role || 'ROLE_USER'}
+        onUploadSuccess={() => {
+          if (onRefresh) onRefresh();
+        }}
+      />
     </div>
   );
 }
