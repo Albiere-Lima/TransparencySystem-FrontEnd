@@ -22,7 +22,6 @@ interface ReceiptGalleryModalProps {
 export function ReceiptGalleryModal({ isOpen, onClose, expenses, onRefresh }: ReceiptGalleryModalProps) {
   const { user } = useAuth();
 
-  // Verificação robusta de role (aceita ROLE_ADMIN, ADMIN ou arrays de roles)
   const rawRole = user?.role;
   const isAdmin = rawRole === 'ROLE_ADMIN' || rawRole === 'ADMIN';
 
