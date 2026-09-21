@@ -38,6 +38,14 @@ export const styles = {
     fontSize: '12px',
   },
 
+  actionIconButton: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    padding: '0.25rem',
+  },
+
   emptyContainer: {
     display: 'flex',
     flexDirection: 'column' as const,
