@@ -263,7 +263,7 @@ export const SupportAdminScreen: React.FC = () => {
         <div style={styles.errorAlert}>
           <AlertCircle size={18} />
           <span>{error}</span>
-          <button onClick={() => fetchMyManifestations(false)} style={styles.retryBtn}>
+          <button onClick={() => fetchMyManifestations(true)} style={styles.retryBtn}>
             Tentar novamente
           </button>
         </div>
