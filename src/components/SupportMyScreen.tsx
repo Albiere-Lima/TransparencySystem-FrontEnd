@@ -78,7 +78,6 @@ export const UserManifestationsScreen: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Ref para auto-scroll no chat
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -111,15 +110,43 @@ export const UserManifestationsScreen: React.FC = () => {
     fetchMyManifestations(false);
   }, [fetchMyManifestations]);
 
-  useEffect(() => {
-    if (!selectedProtocol) return;
 
-    const intervalId = setInterval(() => {
-      fetchMyManifestations(false);
-    }, 3000);
+const fetchActiveProtocolDetails = useCallback(async (protocol: string) => {
+  try {
 
-    return () => clearInterval(intervalId);
-  }, [selectedProtocol, fetchMyManifestations]);
+    const response = await api.get(`/ouvidoria/${protocol}`);
+    const updatedItem = normalizeManifestation(response.data);
+
+    setManifestations((prev) => {
+      const current = prev.find((m) => m.protocol === protocol);
+
+
+      if (
+        current &&
+        current.status === updatedItem.status &&
+        current.messages.length === updatedItem.messages.length &&
+        current.messages[current.messages.length - 1]?.id === updatedItem.messages[updatedItem.messages.length - 1]?.id
+      ) {
+        return prev; 
+      }
+
+      return prev.map((item) => (item.protocol === protocol ? updatedItem : item));
+    });
+  } catch (err) {
+    console.error("Erro no polling do chat:", err);
+  }
+}, []);
+
+
+useEffect(() => {
+  if (!selectedProtocol) return;
+
+  const intervalId = setInterval(() => {
+    fetchActiveProtocolDetails(selectedProtocol);
+  }, 3000);
+
+  return () => clearInterval(intervalId);
+}, [selectedProtocol, fetchActiveProtocolDetails]);
 
   const currentItem = manifestations.find((m) => m.protocol === selectedProtocol);
 
