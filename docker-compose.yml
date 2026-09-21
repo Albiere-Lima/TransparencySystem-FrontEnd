@@ -14,9 +14,9 @@ services:
     networks:
       - api-network
   localtunnel:
-    image: efimag/localtunnel
+    image: node:20-alpine
     restart: always
-    command: --host https://localtunnel.me --port 80 --subdomain calcc --local-host frontend_app
+    command: npx --yes localtunnel --port 80 --local-host frontend_app --subdomain calcc
     networks:
       - api-network
 
