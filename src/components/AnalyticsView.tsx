@@ -65,11 +65,14 @@ export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  expenses = expenses ? expenses : [];
-  const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  // ✅ GARANTIA ABSOLUTA: safeExpenses só será iterado se for um Array
+  const safeExpenses = Array.isArray(expenses) ? expenses : [];
+
+  const totalAmount = safeExpenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
   const categoryData = Object.entries(
-    expenses.reduce((acc, item) => {
+    safeExpenses.reduce((acc, item) => {
       const cat = item.category ? item.category.trim() : 'Outros';
       acc[cat] = (acc[cat] || 0) + Number(item.amount || 0);
       return acc;
@@ -85,7 +88,7 @@ export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
 
   const monthWindow = getCenteredMonthsWindow();
 
-  const expenseMap = expenses.reduce((acc, item) => {
+  const expenseMap = safeExpenses.reduce((acc, item) => {
     if (!item.date) return acc;
     const yearMonth = item.date.substring(0, 7);
     acc[yearMonth] = (acc[yearMonth] || 0) + Number(item.amount || 0);
@@ -97,7 +100,7 @@ export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
     total: expenseMap[m.key] || 0,
   }));
 
-  const hasData = expenses.length > 0;
+  const hasData = safeExpenses.length > 0;
 
   const formatYAxis = (val: number) => {
     if (val === 0) return 'R$ 0';

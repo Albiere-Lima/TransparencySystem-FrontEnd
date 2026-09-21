@@ -29,7 +29,11 @@ function DashboardContent() {
   const fetchExpenses = async () => {
     try {
       const response = await api.get('/expenses');
-      setExpenses(response.data);
+      const data = Array.isArray(response.data) 
+      ? response.data 
+      : (response.data?.content || []);
+
+    setExpenses(data);
     } catch (err) {
       console.error('Erro ao carregar despesas:', err);
     }
