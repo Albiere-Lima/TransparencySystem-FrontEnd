@@ -65,7 +65,7 @@ export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
+  expenses = expenses ? expenses : [];
   const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
   const categoryData = Object.entries(
