@@ -56,23 +56,12 @@ function getCenteredMonthsWindow() {
   return months;
 }
 
-interface AnalyticsViewProps {
-  expenses: Expense[];
-  onRefresh?: () => void;
-}
-
-export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
+export function AnalyticsView({ expenses, onRefresh }: { expenses: Expense[]; onRefresh?: () => void }) {
   const { user } = useAuth();
   const [selectedExpenseForReceipt, setSelectedExpenseForReceipt] = useState<Expense | null>(null);
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  };
 
   const totalAmount = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
@@ -222,53 +211,7 @@ export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
         )}
       </div>
 
-      {/* Card 4: Detalhamento de Comprovantes */}
-      {hasData && (
-        <div style={styles.card}>
-          <div style={{ ...styles.summaryHeader, color: 'var(--text-secondary)' }}>
-            <h3 style={styles.summaryTitle}>Comprovantes das Despesas</h3>
-          </div>
-
-          <div style={styles.summaryList}>
-            {expenses.map((expense) => (
-              <div key={expense.id || expense.description} style={styles.summaryItem}>
-                <div style={{ ...styles.summaryCategoryCol, color: 'var(--text-secondary)', flex: 2 }}>
-                  <span style={styles.categoryName}>{expense.description}</span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.8 }}>
-                    {formatDate(expense.date)} • {expense.category}
-                  </span>
-                </div>
-
-                <span style={{ ...styles.amountText, color: 'var(--text-secondary)', flex: 1, textAlign: 'right' }}>
-                  {formatBRL(Number(expense.amount || 0))}
-                </span>
-
-                <button
-                  onClick={() => setSelectedExpenseForReceipt(expense)}
-                  title="Ver / Anexar Comprovante"
-                  style={{
-                    background: 'none',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    padding: '6px 12px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    color: 'var(--primary-color)',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                  }}
-                >
-                  <FileText size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Modal de Comprovante */}
+      {/* Modal de Comprovante integrado */}
       <ReceiptModal
         isOpen={!!selectedExpenseForReceipt}
         onClose={() => setSelectedExpenseForReceipt(null)}
