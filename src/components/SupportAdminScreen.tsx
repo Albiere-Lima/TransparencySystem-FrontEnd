@@ -3,6 +3,7 @@ import { Search, Send, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { api } from '../services/api';
 import { useIsMobile } from '../services/userIsMobile';
 import { getStyles } from '../styles/SupportAdminScreen.styles';
+import { useAuth } from '../contexts/AuthContext';
 
 interface OuvidoriaMessage {
   id: number;
@@ -27,6 +28,8 @@ interface Manifestation {
 }
 
 const normalizeManifestation = (raw: any): Manifestation => {
+
+  
   if (!raw) return {} as Manifestation;
 
   const rawMessages = raw.messages || raw.mensagens || [];
@@ -65,6 +68,7 @@ const normalizeManifestation = (raw: any): Manifestation => {
 };
 
 export const SupportAdminScreen: React.FC = () => {
+  const {user} = useAuth();
   const [manifestations, setManifestations] = useState<Manifestation[]>([]);
   const [selectedProtocol, setSelectedProtocol] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('TODOS');
@@ -79,37 +83,32 @@ export const SupportAdminScreen: React.FC = () => {
   const isDetailOpenMobile = isMobile && selectedProtocol !== null;
   const styles = getStyles(isMobile, isDetailOpenMobile);
 
-  const fetchManifestations = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await api.get('/admin/ouvidoria');
-      
-      const rawList = Array.isArray(response.data) 
-        ? response.data 
-        : (response.data?.content || []);
-      
-      const normalizedData = rawList.map(normalizeManifestation);
-      setManifestations(normalizedData);
-
-      if (normalizedData.length > 0 && !selectedProtocol && !isMobile) {
-        setSelectedProtocol(normalizedData[0].protocol);
+  const fetchMyManifestations = useCallback(async (isBackground = false) => {
+      if (!user?.email) return;
+      try {
+        if (!isBackground) setIsLoading(true);
+        if (!isBackground) setError(null);
+  
+        const response = await api.get(`/ouvidoria/users/${user.email}`);
+        const rawList = Array.isArray(response.data) 
+          ? response.data 
+          : (response.data?.content || []);
+  
+        const normalizedData = rawList.map(normalizeManifestation);
+        setManifestations(normalizedData);
+      } catch (err: any) {
+        if (!isBackground) {
+          setError(err.response?.data?.message || err.message || 'Erro ao conectar ao servidor.');
+        }
+      } finally {
+        if (!isBackground) setIsLoading(false);
       }
-    } catch (err: any) {
-      if (err.response?.status === 403) {
-        setError('Acesso negado (403): Sua conta precisa de permissão Administrador (ROLE_ADMIN).');
-      } else {
-        setError(err.response?.data?.message || err.message || 'Erro de conexão com o servidor.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedProtocol, isMobile]);
-
-  useEffect(() => {
-    fetchManifestations();
-  }, []);
+    }, [user?.email]);
+  
+    useEffect(() => {
+      fetchMyManifestations(false);
+    }, [fetchMyManifestations]);
+  
 
   const currentItem = manifestations.find((m) => m.protocol === selectedProtocol);
 
@@ -264,7 +263,7 @@ export const SupportAdminScreen: React.FC = () => {
         <div style={styles.errorAlert}>
           <AlertCircle size={18} />
           <span>{error}</span>
-          <button onClick={fetchManifestations} style={styles.retryBtn}>
+          <button onClick={() => fetchMyManifestations(false)} style={styles.retryBtn}>
             Tentar novamente
           </button>
         </div>
