@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, FileText, Upload, Trash2, ExternalLink } from 'lucide-react';
+import { X, FileText, Upload, Trash2, ExternalLink, RefreshCw } from 'lucide-react';
 import { receiptService } from '../services/ReceiptAPI';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -21,7 +21,10 @@ interface ReceiptGalleryModalProps {
 
 export function ReceiptGalleryModal({ isOpen, onClose, expenses, onRefresh }: ReceiptGalleryModalProps) {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'ROLE_ADMIN';
+
+  // Verificação robusta de role (aceita ROLE_ADMIN, ADMIN ou arrays de roles)
+  const rawRole = user?.role;
+  const isAdmin = rawRole === 'ROLE_ADMIN' || rawRole === 'ADMIN';
 
   const [loadingExpenseId, setLoadingExpenseId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,70 +98,106 @@ export function ReceiptGalleryModal({ isOpen, onClose, expenses, onRefresh }: Re
           {expenses.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>Nenhuma despesa cadastrada.</p>
           ) : (
-            expenses.map((expense) => (
-              <div key={expense.id} style={{
-                padding: '12px 16px', border: '1px solid var(--border-color)', borderRadius: '8px',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
-                backgroundColor: 'var(--input-bg)'
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{expense.description}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    {expense.date} • {expense.category} • <strong>{formatBRL(expense.amount)}</strong>
+            expenses.map((expense) => {
+              const isLoading = loadingExpenseId === expense.id;
+
+              return (
+                <div key={expense.id} style={{
+                  padding: '12px 16px', border: '1px solid var(--border-color)', borderRadius: '8px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+                  backgroundColor: 'var(--input-bg)'
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{expense.description}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      {expense.date} • {expense.category} • <strong>{formatBRL(expense.amount)}</strong>
+                    </div>
+                  </div>
+
+                  {/* Ações baseadas no Estado do Comprovante e na Role do Usuário */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {expense.receiptUrl ? (
+                      <>
+                        {/* Botão de Visualização (Acessível a TODOS) */}
+                        <a
+                          href={expense.receiptUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            color: 'var(--primary-color)', fontSize: '13px', fontWeight: 700, textDecoration: 'none'
+                          }}
+                        >
+                          Visualizar <ExternalLink size={14} />
+                        </a>
+
+                        {/* Ações Exclusivas de ADMIN em comprovantes existentes */}
+                        {isAdmin && expense.id && (
+                          <>
+                            {/* Substituir arquivo */}
+                            <label style={{
+                              display: 'inline-flex', alignItems: 'center', cursor: isLoading ? 'not-allowed' : 'pointer',
+                              color: 'var(--text-secondary)', padding: '4px'
+                            }} title="Substituir comprovante">
+                              <RefreshCw size={15} />
+                              <input
+                                type="file"
+                                accept="image/png, image/jpeg, application/pdf"
+                                style={{ display: 'none' }}
+                                disabled={isLoading}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file && expense.id) handleFileUpload(expense.id, file);
+                                }}
+                              />
+                            </label>
+
+                            {/* Deletar comprovante */}
+                            <button
+                              onClick={() => handleDeleteReceipt(expense.id!)}
+                              disabled={isLoading}
+                              style={{ background: 'none', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', color: '#ef4444', padding: '4px' }}
+                              title="Excluir comprovante"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      /* Quando NÃO existe comprovante */
+                      isAdmin && expense.id ? (
+                        /* Botão de Upload (Exclusivo de ADMIN) */
+                        <label style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '6px',
+                          padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px',
+                          cursor: isLoading ? 'not-allowed' : 'pointer',
+                          fontSize: '12px', color: 'var(--text-primary)', fontWeight: 700
+                        }}>
+                          <Upload size={14} color="var(--primary-color)" />
+                          {isLoading ? 'Enviando...' : 'Anexar'}
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, application/pdf"
+                            style={{ display: 'none' }}
+                            disabled={isLoading}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file && expense.id) handleFileUpload(expense.id, file);
+                            }}
+                          />
+                        </label>
+                      ) : (
+                        /* Visualização somente leitura para ROLE_USER */
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                          Sem anexo
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {expense.receiptUrl ? (
-                    <>
-                      <a
-                        href={expense.receiptUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '4px',
-                          color: 'var(--primary-color)', fontSize: '13px', fontWeight: 700, textDecoration: 'none'
-                        }}
-                      >
-                        Visualizar <ExternalLink size={14} />
-                      </a>
-                      {isAdmin && expense.id && (
-                        <button
-                          onClick={() => handleDeleteReceipt(expense.id!)}
-                          disabled={loadingExpenseId === expense.id}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '4px' }}
-                          title="Excluir comprovante"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </>
-                  ) : isAdmin && expense.id ? (
-                    <label style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      padding: '6px 12px', border: '1px solid var(--border-color)', borderRadius: '6px',
-                      cursor: loadingExpenseId === expense.id ? 'not-allowed' : 'pointer',
-                      fontSize: '12px', color: 'var(--text-primary)', fontWeight: 700
-                    }}>
-                      <Upload size={14} color="var(--primary-color)" />
-                      {loadingExpenseId === expense.id ? 'Enviando...' : 'Anexar'}
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        style={{ display: 'none' }}
-                        disabled={loadingExpenseId === expense.id}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file && expense.id) handleFileUpload(expense.id, file);
-                        }}
-                      />
-                    </label>
-                  ) : (
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Sem anexo</span>
-                  )}
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
