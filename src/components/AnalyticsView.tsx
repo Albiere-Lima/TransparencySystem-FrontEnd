@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   ResponsiveContainer,
   PieChart,
@@ -12,10 +11,8 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { PieChart as PieIcon, BarChart3 as BarIcon, ListFilter, FileText } from 'lucide-react';
+import { PieChart as PieIcon, BarChart3 as BarIcon, ListFilter} from 'lucide-react';
 import { styles } from '../styles/AnalyticsView.styles';
-import { ReceiptModal } from '../modals/ReceiptModal.tsx';
-import { useAuth } from '../contexts/AuthContext';
 
 interface Expense {
   id?: number;
@@ -56,9 +53,7 @@ function getCenteredMonthsWindow() {
   return months;
 }
 
-export function AnalyticsView({ expenses, onRefresh }: { expenses: Expense[]; onRefresh?: () => void }) {
-  const { user } = useAuth();
-  const [selectedExpenseForReceipt, setSelectedExpenseForReceipt] = useState<Expense | null>(null);
+export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: () => void }) {
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -199,11 +194,7 @@ export function AnalyticsView({ expenses, onRefresh }: { expenses: Expense[]; on
                   <span style={{ ...styles.amountText, color: 'var(--text-secondary)' }}>
                     {formatBRL(item.value)}
                   </span>
-                  
-                  <button style={styles.actionIconButton} onClick={() => setSelectedExpenseForReceipt(expenses.find(e => e.category === item.name) || null)}>
-                    <FileText />
-                  </button>
-                  
+                
                 </div>
               );
             })}
@@ -215,18 +206,6 @@ export function AnalyticsView({ expenses, onRefresh }: { expenses: Expense[]; on
           </div>
         )}
       </div>
-
-      {/* Modal de Comprovante integrado */}
-      <ReceiptModal
-        isOpen={!!selectedExpenseForReceipt}
-        onClose={() => setSelectedExpenseForReceipt(null)}
-        protocol={selectedExpenseForReceipt?.id?.toString() || ''}
-        receiptUrl={selectedExpenseForReceipt?.receiptUrl}
-        userRole={user?.role || 'ROLE_USER'}
-        onUploadSuccess={() => {
-          if (onRefresh) onRefresh();
-        }}
-      />
     </div>
   );
 }

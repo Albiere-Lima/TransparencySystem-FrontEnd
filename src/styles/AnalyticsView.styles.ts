@@ -44,7 +44,6 @@ export const styles = {
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     padding: '0.25rem',
-    height: '1rem',
   },
 
   emptyContainer: {
@@ -130,7 +129,7 @@ export const styles = {
   },
 
   progressBarTrack: {
-    width: '90%',
+    width: '100%',
     height: '0.5rem',
     backgroundColor: 'var(--border-color, #e5e7eb)',
     borderRadius: '999px',
