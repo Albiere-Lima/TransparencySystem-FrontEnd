@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   MessageSquare, 
   Clock, 
@@ -78,11 +78,19 @@ export const UserManifestationsScreen: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMyManifestations = useCallback(async () => {
+  // Ref para auto-scroll no chat
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Carrega manifestações (com suporte a polling silencioso em background)
+  const fetchMyManifestations = useCallback(async (isBackground = false) => {
     if (!user?.email) return;
     try {
-      setIsLoading(true);
-      setError(null);
+      if (!isBackground) setIsLoading(true);
+      if (!isBackground) setError(null);
 
       const response = await api.get(`/ouvidoria/users/${user.email}`);
       const rawList = Array.isArray(response.data) 
@@ -92,17 +100,38 @@ export const UserManifestationsScreen: React.FC = () => {
       const normalizedData = rawList.map(normalizeManifestation);
       setManifestations(normalizedData);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Erro ao conectar ao servidor.');
+      if (!isBackground) {
+        setError(err.response?.data?.message || err.message || 'Erro ao conectar ao servidor.');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   }, [user?.email]);
 
+  // Carregamento inicial
   useEffect(() => {
-    fetchMyManifestations();
+    fetchMyManifestations(false);
   }, [fetchMyManifestations]);
 
+  // Polling silencioso a cada 3 segundos apenas quando o chat estiver aberto
+  useEffect(() => {
+    if (!selectedProtocol) return;
+
+    const intervalId = setInterval(() => {
+      fetchMyManifestations(true); // Argumento true = atualiza sem ativar o spinner de loading
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedProtocol, fetchMyManifestations]);
+
   const currentItem = manifestations.find((m) => m.protocol === selectedProtocol);
+
+  // Rola até o fim do chat sempre que chegarem novas mensagens ou abrir o chamado
+  useEffect(() => {
+    if (selectedProtocol) {
+      scrollToBottom();
+    }
+  }, [currentItem?.messages?.length, selectedProtocol]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +179,6 @@ export const UserManifestationsScreen: React.FC = () => {
     }
   };
 
-
   const filteredItems = manifestations.filter((item) => {
     if (!item) return false;
     const search = searchTerm.toLowerCase().trim();
@@ -161,16 +189,6 @@ export const UserManifestationsScreen: React.FC = () => {
 
     return protocolStr.includes(search) || titleStr.includes(search);
   });
-
-  useEffect(() => {
-    if (!selectedProtocol) return;
-
-    const intervalId = setInterval(() => {
-      fetchMyManifestations();
-    }, 2000);
-
-    return () => clearInterval(intervalId);
-  }, [selectedProtocol, fetchMyManifestations]);
 
   return (
     <div style={styles.container}>
@@ -187,7 +205,7 @@ export const UserManifestationsScreen: React.FC = () => {
         <div style={styles.errorAlert}>
           <AlertCircle size={18} />
           <span>{error}</span>
-          <button onClick={fetchMyManifestations} style={styles.retryBtn}>
+          <button onClick={() => fetchMyManifestations(false)} style={styles.retryBtn}>
             Tentar novamente
           </button>
         </div>
@@ -251,9 +269,11 @@ export const UserManifestationsScreen: React.FC = () => {
                 );
               })
             )}
+            {/* Elemento invisível para scroll automático */}
+            <div ref={chatEndRef} />
           </div>
 
-          {/* Envio de mensagem se o chamado não estiver concluído */}
+          {/* Envio de mensagem */}
           {currentItem.status !== 'CONCLUIDO' ? (
             <form onSubmit={handleSendMessage} style={styles.chatForm}>
               <input
@@ -278,9 +298,8 @@ export const UserManifestationsScreen: React.FC = () => {
           )}
         </div>
       ) : (
-        /* LISTA DE MANIFESTAÇÕES DO USUÁRIO */
+        /* LISTA DE MANIFESTAÇÕES */
         <div>
-          {/* Busca */}
           <div style={styles.searchContainer}>
             <Search size={16} style={styles.searchIcon} />
             <input
