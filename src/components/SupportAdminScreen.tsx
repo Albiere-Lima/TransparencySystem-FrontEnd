@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Send, Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
 import { api } from '../services/api';
 import { useIsMobile } from '../services/userIsMobile';
 import { getStyles } from '../styles/SupportAdminScreen.styles';
-import { useAuth } from '../contexts/AuthContext';
 
 interface OuvidoriaMessage {
   id: number;
@@ -28,8 +27,6 @@ interface Manifestation {
 }
 
 const normalizeManifestation = (raw: any): Manifestation => {
-
-  
   if (!raw) return {} as Manifestation;
 
   const rawMessages = raw.messages || raw.mensagens || [];
@@ -68,7 +65,6 @@ const normalizeManifestation = (raw: any): Manifestation => {
 };
 
 export const SupportAdminScreen: React.FC = () => {
-  const {user} = useAuth();
   const [manifestations, setManifestations] = useState<Manifestation[]>([]);
   const [selectedProtocol, setSelectedProtocol] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('TODOS');
@@ -83,34 +79,68 @@ export const SupportAdminScreen: React.FC = () => {
   const isDetailOpenMobile = isMobile && selectedProtocol !== null;
   const styles = getStyles(isMobile, isDetailOpenMobile);
 
-  const fetchMyManifestations = useCallback(async (isBackground = false) => {
-      if (!user?.email) return;
-      try {
-        if (!isBackground) setIsLoading(true);
-        if (!isBackground) setError(null);
-  
-        const response = await api.get(`/ouvidoria/users/${user.email}`);
-        const rawList = Array.isArray(response.data) 
-          ? response.data 
-          : (response.data?.content || []);
-  
-        const normalizedData = rawList.map(normalizeManifestation);
-        setManifestations(normalizedData);
-      } catch (err: any) {
-        if (!isBackground) {
-          setError(err.response?.data?.message || err.message || 'Erro ao conectar ao servidor.');
-        }
-      } finally {
-        if (!isBackground) setIsLoading(false);
+  // Ref para rolagem automática do chat
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Busca manifestações (suporta busca silenciosa em background)
+  const fetchManifestations = useCallback(async (isBackground = false) => {
+    try {
+      if (!isBackground) setIsLoading(true);
+      if (!isBackground) setError(null);
+      
+      const response = await api.get('/admin/ouvidoria');
+      
+      const rawList = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.content || []);
+      
+      const normalizedData = rawList.map(normalizeManifestation);
+      setManifestations(normalizedData);
+
+      if (normalizedData.length > 0 && !selectedProtocol && !isMobile) {
+        setSelectedProtocol(normalizedData[0].protocol);
       }
-    }, [user?.email]);
-  
-    useEffect(() => {
-      fetchMyManifestations(false);
-    }, [fetchMyManifestations]);
-  
+    } catch (err: any) {
+      if (!isBackground) {
+        if (err.response?.status === 403) {
+          setError('Acesso negado (403): Sua conta precisa de permissão Administrador (ROLE_ADMIN).');
+        } else {
+          setError(err.response?.data?.message || err.message || 'Erro de conexão com o servidor.');
+        }
+      }
+    } finally {
+      if (!isBackground) setIsLoading(false);
+    }
+  }, [selectedProtocol, isMobile]);
+
+  // Carregamento inicial
+  useEffect(() => {
+    fetchManifestations(false);
+  }, []);
+
+  // Polling silencioso a cada 3 segundos quando houver protocolo selecionado
+  useEffect(() => {
+    if (!selectedProtocol) return;
+
+    const intervalId = setInterval(() => {
+      fetchManifestations(true); // Argumento true = atualiza em background sem piscar a tela
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedProtocol, fetchManifestations]);
 
   const currentItem = manifestations.find((m) => m.protocol === selectedProtocol);
+
+  // Auto-scroll sempre que chegarem novas mensagens ou trocar o chamado selecionado
+  useEffect(() => {
+    if (selectedProtocol) {
+      scrollToBottom();
+    }
+  }, [currentItem?.messages?.length, selectedProtocol]);
 
   const handleStatusChange = async (newStatus: 'PENDENTE' | 'EM_ANDAMENTO' | 'CONCLUIDO') => {
     if (!selectedProtocol) return;
@@ -211,43 +241,6 @@ export const SupportAdminScreen: React.FC = () => {
     );
   });
 
-  const fetchActiveProtocolDetails = useCallback(async (protocol: string) => {
-    try {
-  
-      const response = await api.get(`/ouvidoria/${protocol}`);
-      const updatedItem = normalizeManifestation(response.data);
-  
-      setManifestations((prev) => {
-        const current = prev.find((m) => m.protocol === protocol);
-  
-  
-        if (
-          current &&
-          current.status === updatedItem.status &&
-          current.messages.length === updatedItem.messages.length &&
-          current.messages[current.messages.length - 1]?.id === updatedItem.messages[updatedItem.messages.length - 1]?.id
-        ) {
-          return prev; 
-        }
-  
-        return prev.map((item) => (item.protocol === protocol ? updatedItem : item));
-      });
-    } catch (err) {
-      console.error("Erro no polling do chat:", err);
-    }
-  }, []);
-  
-  
-  useEffect(() => {
-    if (!selectedProtocol) return;
-  
-    const intervalId = setInterval(() => {
-      fetchActiveProtocolDetails(selectedProtocol);
-    }, 3000);
-  
-    return () => clearInterval(intervalId);
-  }, [selectedProtocol, fetchActiveProtocolDetails]);
-
   return (
     <div style={styles.container}>
       {/* Cabeçalho */}
@@ -263,7 +256,7 @@ export const SupportAdminScreen: React.FC = () => {
         <div style={styles.errorAlert}>
           <AlertCircle size={18} />
           <span>{error}</span>
-          <button onClick={() => fetchMyManifestations(true)} style={styles.retryBtn}>
+          <button onClick={() => fetchManifestations(false)} style={styles.retryBtn}>
             Tentar novamente
           </button>
         </div>
@@ -417,6 +410,8 @@ export const SupportAdminScreen: React.FC = () => {
                   );
                 })
               )}
+              {/* Elemento invisível para scroll automático */}
+              <div ref={chatEndRef} />
             </div>
 
             <form onSubmit={handleSendAdminMessage} style={styles.inputForm}>
