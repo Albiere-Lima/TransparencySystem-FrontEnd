@@ -212,15 +212,42 @@ export const SupportAdminScreen: React.FC = () => {
     );
   });
 
+  const fetchActiveProtocolDetails = useCallback(async (protocol: string) => {
+    try {
+  
+      const response = await api.get(`/ouvidoria/${protocol}`);
+      const updatedItem = normalizeManifestation(response.data);
+  
+      setManifestations((prev) => {
+        const current = prev.find((m) => m.protocol === protocol);
+  
+  
+        if (
+          current &&
+          current.status === updatedItem.status &&
+          current.messages.length === updatedItem.messages.length &&
+          current.messages[current.messages.length - 1]?.id === updatedItem.messages[updatedItem.messages.length - 1]?.id
+        ) {
+          return prev; 
+        }
+  
+        return prev.map((item) => (item.protocol === protocol ? updatedItem : item));
+      });
+    } catch (err) {
+      console.error("Erro no polling do chat:", err);
+    }
+  }, []);
+  
+  
   useEffect(() => {
     if (!selectedProtocol) return;
   
     const intervalId = setInterval(() => {
-      fetchManifestations();
-    }, 1500);
+      fetchActiveProtocolDetails(selectedProtocol);
+    }, 3000);
   
     return () => clearInterval(intervalId);
-  }, [selectedProtocol, fetchManifestations]);
+  }, [selectedProtocol, fetchActiveProtocolDetails]);
 
   return (
     <div style={styles.container}>
