@@ -8,7 +8,7 @@ interface ReceiptModalProps {
   isOpen: boolean;
   onClose: () => void;
   userRole: 'ROLE_ADMIN' | 'ROLE_USER' | string;
-  protocol: string;
+  protocol: string; // Representa o expenseId
   receiptUrl?: string | null;
   onUploadSuccess?: (newReceiptUrl: string) => void;
 }
@@ -48,7 +48,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('O arquivo deve ter no máximo 5MB.');
+      setError('O ficheiro deve ter no máximo 5MB.');
       return;
     }
 
@@ -74,15 +74,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
       const formData = new FormData();
       formData.append('file', selectedFile);
-      formData.append('comprovante', selectedFile);
 
-      const response = await api.post(`/admin/ouvidoria/${protocol}/comprovante`, formData, {
+      // Endpoint ajustado para corresponder ao ReceiptController do backend
+      const response = await api.post(`/expenses/${protocol}/receipt`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      const uploadedUrl = response.data?.url || response.data?.comprovanteUrl || preview || '';
+      // Extrai a URL devolvida no ReceiptResponseDTO
+      const uploadedUrl = response.data?.fileUrl || preview || '';
       
-      setSuccess('Comprovante anexado com sucesso!');
+      setSuccess('Comprovativo anexado com sucesso!');
       setSelectedFile(null);
       setPreview(null);
 
@@ -90,7 +91,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         onUploadSuccess(uploadedUrl);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Erro ao enviar comprovante.');
+      setError(err.response?.data?.message || err.message || 'Erro ao enviar o comprovativo.');
     } finally {
       setIsUploading(false);
     }
@@ -104,8 +105,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         {/* Cabeçalho */}
         <div style={styles.header}>
           <div style={styles.headerTitle}>
-            <FileText size={20} color="#d97706" />
-            <span>Comprovante — Protocolo {protocol}</span>
+            <FileText size={20} color="var(--primary-color)" />
+            <span>Comprovativo — Despesa #{protocol}</span>
           </div>
           <button onClick={onClose} style={styles.closeBtn} type="button" title="Fechar">
             <X size={20} />
@@ -127,9 +128,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         )}
 
         <div style={styles.body}>
-          {/* Seção 1: Visualização */}
+          {/* Secção 1: Visualização */}
           <div style={styles.section}>
-            <span style={styles.sectionTitle}>Comprovante Atual</span>
+            <span style={styles.sectionTitle}>Comprovativo Atual</span>
             
             {receiptUrl ? (
               <div style={styles.viewerBox}>
@@ -143,12 +144,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                       rel="noopener noreferrer" 
                       style={styles.downloadBtn}
                     >
-                      <Download size={16} /> Baixar PDF
+                      <Download size={16} /> Descarregar PDF
                     </a>
                   </div>
                 ) : (
                   <div style={styles.imagePreviewContainer}>
-                    <img src={receiptUrl} alt="Comprovante" style={styles.imagePreview} />
+                    <img src={receiptUrl} alt="Comprovativo" style={styles.imagePreview} />
                     <a 
                       href={receiptUrl} 
                       target="_blank" 
@@ -162,21 +163,21 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               </div>
             ) : (
               <div style={styles.emptyReceipt}>
-                Nenhum comprovante foi anexado a este chamado até o momento.
+                Nenhum comprovativo foi anexado a esta despesa até ao momento.
               </div>
             )}
           </div>
 
-          {/* Seção 2: Upload (Exclusivo para ADMIN) */}
+          {/* Secção 2: Upload (Exclusivo para ADMIN) */}
           {isAdmin && (
             <div style={styles.uploadSection}>
-              <span style={styles.sectionTitle}>Adicionar / Substituir Comprovante</span>
+              <span style={styles.sectionTitle}>Adicionar / Substituir Comprovativo</span>
               
               <form onSubmit={handleUpload} style={styles.uploadForm}>
                 <label style={styles.dropZone}>
-                  <Upload size={24} color="#d97706" />
+                  <Upload size={24} color="var(--primary-color)" />
                   <span style={styles.dropText}>
-                    {selectedFile ? selectedFile.name : 'Clique para selecionar um arquivo (PNG, JPG, PDF)'}
+                    {selectedFile ? selectedFile.name : 'Clique para selecionar um ficheiro (PNG, JPG, PDF)'}
                   </span>
                   <input
                     type="file"
