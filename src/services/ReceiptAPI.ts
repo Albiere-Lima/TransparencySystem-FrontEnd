@@ -1,3 +1,5 @@
+import { api } from './api';
+
 export interface ReceiptResponse {
   id: number;
   originalFileName: string;
@@ -7,69 +9,24 @@ export interface ReceiptResponse {
   createdAt: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
 export const receiptService = {
-  /**
-   * Upload ou substituição de comprovante
-   */
   async uploadReceipt(expenseId: number, file: File): Promise<ReceiptResponse> {
     const formData = new FormData();
     formData.append('file', file);
 
-    const token = localStorage.getItem('token'); // Ou seu gerenciador de token/AuthContext
-
-    const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/receipt`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
+    const response = await api.post<ReceiptResponse>(`/expenses/${expenseId}/receipt`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Falha ao enviar comprovante');
-    }
-
-    return response.json();
+    return response.data;
   },
 
-  /**
-   * Busca os dados do comprovante de uma despesa específica
-   */
   async getReceipt(expenseId: number): Promise<ReceiptResponse> {
-    const token = localStorage.getItem('token');
-
-    const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/receipt`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Comprovante não encontrado');
-    }
-
-    return response.json();
+    const response = await api.get<ReceiptResponse>(`/expenses/${expenseId}/receipt`);
+    return response.data;
   },
 
-  /**
-   * Remove o comprovante associado a uma despesa
-   */
   async deleteReceipt(expenseId: number): Promise<void> {
-    const token = localStorage.getItem('token');
-
-    const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/receipt`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Falha ao remover comprovante');
-    }
+    await api.delete(`/expenses/${expenseId}/receipt`);
   },
 };
