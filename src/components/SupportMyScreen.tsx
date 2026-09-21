@@ -85,7 +85,6 @@ export const UserManifestationsScreen: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Carrega manifestações (com suporte a polling silencioso em background)
   const fetchMyManifestations = useCallback(async (isBackground = false) => {
     if (!user?.email) return;
     try {
@@ -108,17 +107,15 @@ export const UserManifestationsScreen: React.FC = () => {
     }
   }, [user?.email]);
 
-  // Carregamento inicial
   useEffect(() => {
     fetchMyManifestations(false);
   }, [fetchMyManifestations]);
 
-  // Polling silencioso a cada 3 segundos apenas quando o chat estiver aberto
   useEffect(() => {
     if (!selectedProtocol) return;
 
     const intervalId = setInterval(() => {
-      fetchMyManifestations(true); // Argumento true = atualiza sem ativar o spinner de loading
+      fetchMyManifestations(false);
     }, 3000);
 
     return () => clearInterval(intervalId);
@@ -126,7 +123,6 @@ export const UserManifestationsScreen: React.FC = () => {
 
   const currentItem = manifestations.find((m) => m.protocol === selectedProtocol);
 
-  // Rola até o fim do chat sempre que chegarem novas mensagens ou abrir o chamado
   useEffect(() => {
     if (selectedProtocol) {
       scrollToBottom();
