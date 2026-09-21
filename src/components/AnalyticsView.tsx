@@ -261,7 +261,6 @@ export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
                   }}
                 >
                   <FileText size={16} />
-                  <span>Comprovante</span>
                 </button>
               </div>
             ))}
