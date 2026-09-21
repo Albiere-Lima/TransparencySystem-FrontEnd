@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Search, Plus, Trash2, Banknote, ListOrdered, Tag, X, PieChart, FileText } from 'lucide-react';
 import { api } from '../services/api';
-import { ExpenseChartModal } from './ExpenseChartModal.tsx';
+import { ExpenseChartModal } from '../modals/ExpenseChartModal.tsx';
 import { styles } from '../styles/ManegementView.styles';
+import { ReceiptModal } from '../modals/ReceiptModal.tsx';
+import { useAuth } from '../contexts/AuthContext'; // Importação do usuário
 
 interface Expense {
   id?: number;
@@ -10,6 +12,7 @@ interface Expense {
   amount: number;
   date: string;
   category: string;
+  receiptUrl?: string | null; // Adicionado para suporte ao comprovante
 }
 
 interface ManagementViewProps {
@@ -27,11 +30,15 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 export function ManagementView({ expenses, onRefresh }: ManagementViewProps) {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('TODAS');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
-  
+
+  // Estado para controlar qual despesa está com o modal de comprovante aberto
+  const [selectedExpenseForReceipt, setSelectedExpenseForReceipt] = useState<Expense | null>(null);
+
   const [form, setForm] = useState<Expense>({
     description: '',
     amount: 0,
@@ -205,9 +212,14 @@ export function ManagementView({ expenses, onRefresh }: ManagementViewProps) {
                     </td>
                     <td style={styles.tdActions}>
                       <div style={styles.actionsGroup}>
-                        <button title="Ver detalhes" style={styles.actionIconButton}>
+                        <button
+                          onClick={() => setSelectedExpenseForReceipt(expense)}
+                          title="Ver / Anexar Comprovante"
+                          style={styles.actionIconButton}
+                        >
                           <FileText size="1.95vh" />
                         </button>
+
                         <button
                           onClick={() => handleDelete(expense.id)}
                           title="Excluir despesa"
@@ -230,6 +242,18 @@ export function ManagementView({ expenses, onRefresh }: ManagementViewProps) {
           )}
         </div>
       </div>
+
+      {/* Modal de Comprovante (Isolado e chamado condicionalmente) */}
+      <ReceiptModal
+        isOpen={!!selectedExpenseForReceipt}
+        onClose={() => setSelectedExpenseForReceipt(null)}
+        protocol={selectedExpenseForReceipt?.id?.toString() || ''}
+        receiptUrl={selectedExpenseForReceipt?.receiptUrl}
+        userRole={user?.role || 'ROLE_USER'}
+        onUploadSuccess={() => {
+          onRefresh();
+        }}
+      />
 
       {/* Modal de Cadastro */}
       {isModalOpen && (

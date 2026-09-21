@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ChevronDown, User, LogOut, Check, Settings, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import type { ThemeName } from '../contexts/ThemeContext';
-import { SetAdminModal } from './SetAdminModal';
+import { SetAdminModal } from '../modals/SetAdminModal';
 import { getStyles } from '../styles/Header.styles';
 import { useIsMobile } from '../services/userIsMobile';
 

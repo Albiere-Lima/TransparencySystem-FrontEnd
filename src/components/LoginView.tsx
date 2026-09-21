@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Mail, Lock, LogIn, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { GoogleAuthButton } from './GoogleAuthButton';
+import { GoogleAuthButton } from '../modals/GoogleAuthButton';
 import { styles } from '../styles/LoginView.styles';
 
 export function LoginView() {
