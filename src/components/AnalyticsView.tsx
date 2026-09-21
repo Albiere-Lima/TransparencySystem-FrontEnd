@@ -11,8 +11,10 @@ import {
   CartesianGrid,
   Legend,
 } from 'recharts';
-import { PieChart as PieIcon, BarChart3 as BarIcon, ListFilter} from 'lucide-react';
+import { PieChart as PieIcon, BarChart3 as BarIcon, ListFilter, FileText } from 'lucide-react';
 import { styles } from '../styles/AnalyticsView.styles';
+import { useState } from 'react';
+import { ReceiptGalleryModal } from '../modals/ReceiptGaleryModal';
 
 interface Expense {
   id?: number;
@@ -21,6 +23,11 @@ interface Expense {
   date: string;
   category: string;
   receiptUrl?: string | null;
+}
+
+interface AnalyticsViewProps {
+  expenses: Expense[];
+  onRefresh?: () => void;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -42,7 +49,7 @@ function getCenteredMonthsWindow() {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const monthName = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
     const formattedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
-    
+
     const year = d.getFullYear();
     const monthNum = String(d.getMonth() + 1).padStart(2, '0');
     const key = `${year}-${monthNum}`;
@@ -53,7 +60,8 @@ function getCenteredMonthsWindow() {
   return months;
 }
 
-export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: () => void }) {
+export function AnalyticsView({ expenses, onRefresh }: AnalyticsViewProps) {
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   const formatBRL = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -76,7 +84,7 @@ export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: (
     .sort((a, b) => b.value - a.value);
 
   const monthWindow = getCenteredMonthsWindow();
-  
+
   const expenseMap = expenses.reduce((acc, item) => {
     if (!item.date) return acc;
     const yearMonth = item.date.substring(0, 7);
@@ -99,11 +107,34 @@ export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: (
 
   return (
     <div style={styles.container}>
+      {/* Cabeçalho superior com botão de ação */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+        <button
+          onClick={() => setIsGalleryOpen(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            backgroundColor: 'var(--bg-surface)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '6px',
+            color: 'var(--text-primary)',
+            fontSize: '13px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          <FileText size={16} color="var(--primary-color)" />
+          Ver Todos os Comprovantes
+        </button>
+      </div>
+
       <div style={styles.chartsGrid}>
         {/* Card 1: Distribuição por Categoria */}
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Distribuição por Categoria</h3>
-          
+
           {hasData ? (
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
@@ -143,7 +174,7 @@ export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: (
         {/* Card 2: Evolução Mensal */}
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Evolução Mensal de Gastos</h3>
-          
+
           {hasData ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={monthlyData}>
@@ -167,9 +198,7 @@ export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: (
       <div style={styles.card}>
         <div style={{ ...styles.summaryHeader, color: 'var(--text-secondary)' }}>
           <h3 style={styles.summaryTitle}>Resumo por Categoria</h3>
-          <span style={styles.summaryTotalText}>
-            Total: {formatBRL(totalAmount)}
-          </span>
+          <span style={styles.summaryTotalText}>Total: {formatBRL(totalAmount)}</span>
         </div>
 
         {hasData ? (
@@ -187,14 +216,11 @@ export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: (
                     <div style={styles.getProgressBarFill(item.percentage, color)} />
                   </div>
 
-                  <span style={styles.percentageText}>
-                    {item.percentage.toFixed(1)}%
-                  </span>
+                  <span style={styles.percentageText}>{item.percentage.toFixed(1)}%</span>
 
                   <span style={{ ...styles.amountText, color: 'var(--text-secondary)' }}>
                     {formatBRL(item.value)}
                   </span>
-                
                 </div>
               );
             })}
@@ -206,6 +232,14 @@ export function AnalyticsView({ expenses }: { expenses: Expense[]; onRefresh?: (
           </div>
         )}
       </div>
+
+      {/* Modal posicionado na raiz do componente */}
+      <ReceiptGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        expenses={expenses}
+        onRefresh={onRefresh}
+      />
     </div>
   );
 }
