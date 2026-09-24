@@ -1,0 +1,19 @@
+name: Build e Push Local
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Build e Push para o Registry Local
+        run: |
+          docker build -t localhost:5000/meu-app:latest .
+          docker push localhost:5000/meu-app:latest
