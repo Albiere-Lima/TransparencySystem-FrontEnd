@@ -10,16 +10,22 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Baixar código do repositório
+      - name: Baixar código
         uses: actions/checkout@v4
 
-      - name: Build e Push para o Registry (localhost)
+      - name: Build e Push para o Registry
         run: |
           docker build -t localhost:5000/transparencia:latest .
           docker push localhost:5000/transparencia:latest
 
-      - name: Rodar a aplicação no servidor
+      - name: Atualizar Container da Aplicação
         run: |
+          # Remove o container antigo se existir
           docker rm -f site-transparencia || true
           
-          docker run -d --name site-transparencia -p 3000:80 localhost:5000/transparencia:latest
+          # Inicia a nova versão
+          docker run -d \
+            --name site-transparencia \
+            -p 3000:80 \
+            --restart=always \
+            localhost:5000/transparencia:latest
