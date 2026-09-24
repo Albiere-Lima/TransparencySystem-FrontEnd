@@ -1,19 +1,25 @@
-name: Build e Push Local
+name: Deploy Frontend Transparência
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout do código
+      - name: Baixar código do repositório
         uses: actions/checkout@v4
 
-      - name: Build e Push para o Registry Local
+      - name: Build e Push para o Registry (localhost)
         run: |
-          docker build -t localhost:5000/meu-app:latest .
-          docker push localhost:5000/meu-app:latest
+          docker build -t localhost:5000/transparencia:latest .
+          docker push localhost:5000/transparencia:latest
+
+      - name: Rodar a aplicação no servidor
+        run: |
+          docker rm -f site-transparencia || true
+          
+          docker run -d --name site-transparencia -p 3000:80 localhost:5000/transparencia:latest
