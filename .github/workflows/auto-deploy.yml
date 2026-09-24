@@ -3,7 +3,7 @@ name: Deploy Frontend Transparência
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-and-deploy:
