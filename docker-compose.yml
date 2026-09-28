@@ -13,7 +13,13 @@ services:
       - VITE_API_URL=/api
     networks:
       - api-network
-      
+  localtunnel:
+    image: node:20-alpine
+    restart: always
+    command: npx --yes localtunnel --port 80 --local-host frontend_app --subdomain calcc
+    networks:
+      - api-network
+
 networks:
   api-network:
     name: api-network

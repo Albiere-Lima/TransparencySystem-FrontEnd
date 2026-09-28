@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     host: true,
     allowedHosts: [
+      'calcc.loca.lt',
       'localhost',
-      '192.168.0.10',
-      '192.168.0.10.nip.io',
+      '10.61.64.232'
     ],
     port: 5173,
     strictPort: true,
